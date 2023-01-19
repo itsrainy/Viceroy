@@ -65,7 +65,7 @@ impl ExecuteCtx {
         profiling_strategy: ProfilingStrategy,
         wasi_modules: HashSet<ExperimentalModule>,
     ) -> Result<Self, Error> {
-        let config = &configure_wasmtime(profiling_strategy);
+        let config = &configure_wasmtime(profiling_strategy)?;
         let engine = Engine::new(config)?;
         let mut linker = Linker::new(&engine);
         link_host_functions(&mut linker, &wasi_modules)?;
@@ -343,7 +343,9 @@ impl ExecuteCtx {
     }
 }
 
-fn configure_wasmtime(profiling_strategy: ProfilingStrategy) -> wasmtime::Config {
+fn configure_wasmtime(
+    profiling_strategy: ProfilingStrategy,
+) -> Result<wasmtime::Config, anyhow::Error> {
     use wasmtime::{
         Config, InstanceAllocationStrategy, PoolingAllocationConfig, PoolingAllocationStrategy,
         WasmBacktraceDetails,
@@ -355,6 +357,7 @@ fn configure_wasmtime(profiling_strategy: ProfilingStrategy) -> wasmtime::Config
     config.async_support(true);
     config.consume_fuel(true);
     config.profiler(profiling_strategy);
+    config.cache_config_load_default()?;
 
     const MB: usize = 1 << 20;
     let mut pooling_allocation_config = PoolingAllocationConfig::default();
@@ -385,5 +388,5 @@ fn configure_wasmtime(profiling_strategy: ProfilingStrategy) -> wasmtime::Config
         pooling_allocation_config,
     ));
 
-    config
+    Ok(config)
 }
